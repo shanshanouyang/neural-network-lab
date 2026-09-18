@@ -63,6 +63,8 @@ $$
 
 Gradient checks pass with relative errors in the $10^{-7}$ to $10^{-10}$ range across all parameters (see engine/gradient_check.py and tests/test_network.py / tests/test_mnist_network.py).
 
+As an additional independent check, the same network and data were built in PyTorch, initialized with identical weights, and the resulting gradients from PyTorch's autograd were compared against this project's hand-derived gradients. All quantities (loss, dW1, db1, dW2, db2) matched to within 1e-8 to 1e-10, providing a third-party confirmation that the manual backpropagation implementation is correct, independent of both the analytic derivation and the numerical gradient check.
+
 ## Interactive Demo
 
 The decision boundary visualizer (engine/visualize.py) plots the trained network's learned classification boundary directly, using a TensorFlow Playground style orange/blue color scheme:
