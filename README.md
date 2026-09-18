@@ -10,6 +10,7 @@ This project implements a fully connected neural network training engine from fi
 
 - Forward and backward propagation, implemented manually using the chain rule
 - Numerical gradient checking to verify the correctness of every gradient
+- Cross-verification of gradients against PyTorch autograd
 - L1 and L2 regularization
 - Three optimizers: SGD, Momentum, and Adam
 - A decision boundary visualizer for 2D toy datasets
@@ -69,7 +70,7 @@ As an additional independent check, the same network and data were built in PyTo
 
 The decision boundary visualizer (engine/visualize.py) plots the trained network's learned classification boundary directly, using a TensorFlow Playground style orange/blue color scheme:
 
-![Decision Boundary](decision_boundary.png)
+![Decision Boundary](figures/decision_boundary.png)
 
 The boundary is piecewise linear, which is expected: a single ReLU hidden layer can only produce a decision boundary made of straight line segments, which is also why accuracy plateaus around 86% on the make_moons dataset rather than approaching 100% — the network cannot bend a boundary to perfectly trace a curved, non-linearly-separable shape with this architecture.
 
@@ -126,24 +127,25 @@ The same engine, extended to a 784-128-64-10 fully connected network with softma
 
 - 97.75% test accuracy on MNIST using a from-scratch NumPy implementation, no external ML frameworks
 - Training accuracy reached 99.96%, roughly 2.2 points above test accuracy — a sign of mild overfitting, discussed further below
-- All gradients verified numerically with relative error below $10^{-5}$ (typically $10^{-7}$ to $10^{-10}$)
+- All gradients verified numerically with relative error below $10^{-5}$ (typically $10^{-7}$ to $10^{-10}$), and independently cross-checked against PyTorch autograd
 - 16/16 pytest tests passing, enforced on every push via GitHub Actions
 
 ## Reproducibility
 
-All experiments use fixed random seeds (numpy.random.default_rng(seed)). To reproduce:
+All experiments use fixed random seeds (numpy.random.default_rng(seed)). To reproduce (all commands run from the project root):
 
     python3 -m venv venv
     source venv/bin/activate
-    pip install numpy matplotlib scikit-learn pytest pandas
+    pip install numpy matplotlib scikit-learn pytest pandas torch
 
-    python3 -m pytest tests/ -v              # run the full test suite
-    python3 check_gradients.py               # gradient check on toy network
-    python3 train_toy.py                     # train toy network
-    python3 visualize_boundary.py            # generate decision boundary plot
-    python3 compare_regularization.py        # L1 vs L2 vs no regularization
-    python3 compare_optimizers.py            # SGD vs Momentum vs Adam
-    python3 train_mnist.py                   # full MNIST training run
+    python3 -m pytest tests/ -v                          # run the full test suite
+    python3 experiments/check_gradients.py               # gradient check on toy network
+    python3 experiments/train_toy.py                     # train toy network
+    python3 experiments/visualize_boundary.py            # generate decision boundary plot
+    python3 experiments/compare_regularization.py        # L1 vs L2 vs no regularization
+    python3 experiments/compare_optimizers.py            # SGD vs Momentum vs Adam
+    python3 experiments/pytorch_verification.py          # cross-check gradients against PyTorch autograd
+    python3 experiments/train_mnist.py                   # full MNIST training run
 
 ## Limitations
 
@@ -152,11 +154,21 @@ All experiments use fixed random seeds (numpy.random.default_rng(seed)). To repr
 - Momentum did not outperform SGD in the optimizer comparison; this is reported honestly rather than tuned to match textbook expectations, and is likely a property of this specific small-scale setup rather than a general claim about momentum
 - No convolutional layers are used for MNIST; this was an intentional scope decision, since the goal of this project is depth of understanding of a fully connected network's training pipeline rather than breadth of architectures
 
+## Repository Structure
+
+    neural-network-lab/
+    ├── engine/              # core training engine (forward, backward, losses, optimizers, gradient check)
+    ├── experiments/         # scripts for training, visualization, and comparison experiments
+    ├── figures/             # generated plots
+    ├── tests/               # pytest suite
+    ├── docs/                # math derivation document
+    └── README.md
+
 ## How to Run
 
     git clone https://github.com/shanshanouyang/neural-network-lab.git
     cd neural-network-lab
     python3 -m venv venv
     source venv/bin/activate
-    pip install numpy matplotlib scikit-learn pytest pandas
+    pip install numpy matplotlib scikit-learn pytest pandas torch
     python3 -m pytest tests/ -v
