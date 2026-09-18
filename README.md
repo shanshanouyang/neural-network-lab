@@ -25,40 +25,44 @@ Most machine learning projects at this level call model.fit() on a framework and
 
 Toy network (used for the 2D experiments and visualizations):
 
-Input (2) -> W1, b1 -> ReLU -> W2, b2 -> Sigmoid -> Output (1)
+    Input (2) -> W1, b1 -> ReLU -> W2, b2 -> Sigmoid -> Output (1)
 
 MNIST network:
 
-Input (784) -> W1, b1 -> ReLU -> W2, b2 -> ReLU -> W3, b3 -> Softmax -> Output (10)
+    Input (784) -> W1, b1 -> ReLU -> W2, b2 -> ReLU -> W3, b3 -> Softmax -> Output (10)
 
 Weights are initialized with He initialization (std = sqrt(2 / fan_in)), appropriate for ReLU activations.
-
 
 ## Backprop Implementation
 
 The backward pass is derived by hand using the chain rule, starting from the loss function and working backward through each layer. For the toy network:
 
+    Z1 = X @ W1 + b1
+    A1 = ReLU(Z1)
+    Z2 = A1 @ W2 + b2
+    y_hat = sigmoid(Z2)
 
-The gradient of the loss with respect to `Z2` simplifies to `(y_hat - y_true) / n` for the sigmoid + binary cross-entropy combination (and to the same structural form for softmax + categorical cross-entropy in the MNIST network). All layer-by-layer gradients are computed manually in `engine/network.py` and `engine/mnist_network.py`.
+The gradient of the loss with respect to Z2 simplifies to (y_hat - y_true) / n for the sigmoid + binary cross-entropy combination (and to the same structural form for softmax + categorical cross-entropy in the MNIST network). All layer-by-layer gradients are computed manually in engine/network.py and engine/mnist_network.py. A full derivation of every step is in docs/math_derivation.md.
+
+### A real bug this caught
+
+During development, the loss function silently produced incorrect values due to a shape mismatch: y_true had shape (n,) while y_pred had shape (n, 1), and NumPy broadcasting silently expanded the multiplication into an (n, n) array instead of raising an error. The result was a loss value that looked plausible but was mathematically wrong, and training that never converged even though the gradients "looked" fine at a glance. This was caught by comparing training loss curves against expectations, then confirmed by a targeted numerical gradient check. The fix — explicitly reshaping y_true to match y_pred before computing the loss — is covered by a regression test in tests/test_network.py::test_binary_cross_entropy_shape_mismatch_regression, so it cannot silently reappear.
 
 ## Verification
 
 Every gradient is checked against a numerical estimate computed by perturbing each parameter by a small epsilon and measuring the resulting change in loss:
 
+    numerical_gradient = (loss(w + eps) - loss(w - eps)) / (2 * eps)
 
-Gradient checks pass with relative errors in the 1e-7 to 1e-10 range across all parameters (see `engine/gradient_check.py` and `tests/test_network.py` / `tests/test_mnist_network.py`).
-
-### A real bug this caught
-
-During development, the loss function silently produced incorrect values due to a shape mismatch: `y_true` had shape `(n,)` while `y_pred` had shape `(n, 1)`, and NumPy broadcasting silently expanded the multiplication into an `(n, n)` array instead of raising an error. The result was a loss value that looked plausible but was mathematically wrong, and training that never converged even though the gradients "looked" fine at a glance. This was caught by comparing training loss curves against expectations, then confirmed by a targeted numerical gradient check. The fix — explicitly reshaping `y_true` to match `y_pred` before computing the loss — is covered by a regression test in `tests/test_network.py::test_binary_cross_entropy_shape_mismatch_regression`, so it cannot silently reappear.
+Gradient checks pass with relative errors in the 1e-7 to 1e-10 range across all parameters (see engine/gradient_check.py and tests/test_network.py / tests/test_mnist_network.py).
 
 ## Interactive Demo
 
-The decision boundary visualizer (`engine/visualize.py`) plots the trained network's learned classification boundary directly, using a TensorFlow Playground style orange/blue color scheme:
+The decision boundary visualizer (engine/visualize.py) plots the trained network's learned classification boundary directly, using a TensorFlow Playground style orange/blue color scheme:
 
 ![Decision Boundary](decision_boundary.png)
 
-The boundary is piecewise linear, which is expected: a single ReLU hidden layer can only produce a decision boundary made of straight line segments, which is also why accuracy plateaus around 86% on the `make_moons` dataset rather than approaching 100% — the network cannot bend a boundary to perfectly trace a curved, non-linearly-separable shape with this architecture.
+The boundary is piecewise linear, which is expected: a single ReLU hidden layer can only produce a decision boundary made of straight line segments, which is also why accuracy plateaus around 86% on the make_moons dataset rather than approaching 100% — the network cannot bend a boundary to perfectly trace a curved, non-linearly-separable shape with this architecture.
 
 ## Experiments
 
@@ -70,7 +74,7 @@ The boundary is piecewise linear, which is expected: a single ReLU hidden layer 
 | L1 Regularization | 0.8650 | 0.2992 | 0.2500 |
 | L2 Regularization | 0.8450 | 0.3500 | 0.0000 |
 
-L1 regularization produced 25% sparse weights (weights driven to near-zero), while L2 and no-regularization produced none — consistent with the theoretical expectation that L1's constant-magnitude gradient (`sign(W)`) pushes small weights all the way to zero, while L2's gradient (proportional to `W`) shrinks weights without eliminating them.
+L1 regularization produced 25% sparse weights (weights driven to near-zero), while L2 and no-regularization produced none — consistent with the theoretical expectation that L1's constant-magnitude gradient (sign(W)) pushes small weights all the way to zero, while L2's gradient (proportional to W) shrinks weights without eliminating them.
 
 ### Optimizer comparison
 
@@ -111,7 +115,7 @@ The same engine, extended to a 784-128-64-10 fully connected network with softma
 
 ## Results
 
-- **97.75% test accuracy** on MNIST using a from-scratch NumPy implementation, no external ML frameworks
+- 97.75% test accuracy on MNIST using a from-scratch NumPy implementation, no external ML frameworks
 - Training accuracy reached 99.96%, roughly 2.2 points above test accuracy — a sign of mild overfitting, discussed further below
 - All gradients verified numerically with relative error below 1e-5 (typically 1e-7 to 1e-10)
 - 16/16 pytest tests passing, enforced on every push via GitHub Actions
