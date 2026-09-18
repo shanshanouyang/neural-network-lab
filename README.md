@@ -31,18 +31,23 @@ MNIST network:
 
     Input (784) -> W1, b1 -> ReLU -> W2, b2 -> ReLU -> W3, b3 -> Softmax -> Output (10)
 
-Weights are initialized with He initialization (std = sqrt(2 / fan_in)), appropriate for ReLU activations.
+Weights are initialized with He initialization ($\text{std} = \sqrt{2 / \text{fan\_in}}$), appropriate for ReLU activations.
 
 ## Backprop Implementation
 
 The backward pass is derived by hand using the chain rule, starting from the loss function and working backward through each layer. For the toy network:
 
-    Z1 = X @ W1 + b1
-    A1 = ReLU(Z1)
-    Z2 = A1 @ W2 + b2
-    y_hat = sigmoid(Z2)
+$$
+Z^{[1]} = X W^{[1]} + b^{[1]}, \quad A^{[1]} = \text{ReLU}(Z^{[1]}), \quad Z^{[2]} = A^{[1]} W^{[2]} + b^{[2]}, \quad \hat{y} = \sigma(Z^{[2]})
+$$
 
-The gradient of the loss with respect to Z2 simplifies to (y_hat - y_true) / n for the sigmoid + binary cross-entropy combination (and to the same structural form for softmax + categorical cross-entropy in the MNIST network). All layer-by-layer gradients are computed manually in engine/network.py and engine/mnist_network.py. A full derivation of every step is in docs/math_derivation.md.
+The gradient of the loss with respect to $Z^{[2]}$ simplifies to:
+
+$$
+\frac{\partial L}{\partial Z^{[2]}} = \frac{\hat{y} - y}{n}
+$$
+
+for the sigmoid + binary cross-entropy combination (and to the same structural form for softmax + categorical cross-entropy in the MNIST network). All layer-by-layer gradients are computed manually in engine/network.py and engine/mnist_network.py. A full derivation of every step is in docs/math_derivation.md.
 
 ### A real bug this caught
 
@@ -52,9 +57,11 @@ During development, the loss function silently produced incorrect values due to 
 
 Every gradient is checked against a numerical estimate computed by perturbing each parameter by a small epsilon and measuring the resulting change in loss:
 
-    numerical_gradient = (loss(w + eps) - loss(w - eps)) / (2 * eps)
+$$
+\frac{\partial L}{\partial w} \approx \frac{L(w + \varepsilon) - L(w - \varepsilon)}{2\varepsilon}
+$$
 
-Gradient checks pass with relative errors in the 1e-7 to 1e-10 range across all parameters (see engine/gradient_check.py and tests/test_network.py / tests/test_mnist_network.py).
+Gradient checks pass with relative errors in the $10^{-7}$ to $10^{-10}$ range across all parameters (see engine/gradient_check.py and tests/test_network.py / tests/test_mnist_network.py).
 
 ## Interactive Demo
 
@@ -74,7 +81,7 @@ The boundary is piecewise linear, which is expected: a single ReLU hidden layer 
 | L1 Regularization | 0.8650 | 0.2992 | 0.2500 |
 | L2 Regularization | 0.8450 | 0.3500 | 0.0000 |
 
-L1 regularization produced 25% sparse weights (weights driven to near-zero), while L2 and no-regularization produced none — consistent with the theoretical expectation that L1's constant-magnitude gradient (sign(W)) pushes small weights all the way to zero, while L2's gradient (proportional to W) shrinks weights without eliminating them.
+L1 regularization produced 25% sparse weights (weights driven to near-zero), while L2 and no-regularization produced none — consistent with the theoretical expectation that L1's constant-magnitude gradient ($\text{sign}(W)$) pushes small weights all the way to zero, while L2's gradient (proportional to $W$) shrinks weights without eliminating them.
 
 ### Optimizer comparison
 
@@ -117,7 +124,7 @@ The same engine, extended to a 784-128-64-10 fully connected network with softma
 
 - 97.75% test accuracy on MNIST using a from-scratch NumPy implementation, no external ML frameworks
 - Training accuracy reached 99.96%, roughly 2.2 points above test accuracy — a sign of mild overfitting, discussed further below
-- All gradients verified numerically with relative error below 1e-5 (typically 1e-7 to 1e-10)
+- All gradients verified numerically with relative error below $10^{-5}$ (typically $10^{-7}$ to $10^{-10}$)
 - 16/16 pytest tests passing, enforced on every push via GitHub Actions
 
 ## Reproducibility
