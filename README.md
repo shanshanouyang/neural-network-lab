@@ -31,7 +31,7 @@ MNIST network:
 
     Input (784) -> W1, b1 -> ReLU -> W2, b2 -> ReLU -> W3, b3 -> Softmax -> Output (10)
 
-Weights are initialized with He initialization ($\text{std} = \sqrt{2 / \text{fan\_in}}$), appropriate for ReLU activations.
+Weights are initialized with He initialization (`std = sqrt(2 / fan_in)`), appropriate for ReLU activations.
 
 ## Backprop Implementation
 
@@ -81,7 +81,7 @@ The boundary is piecewise linear, which is expected: a single ReLU hidden layer 
 | L1 Regularization | 0.8650 | 0.2992 | 0.2500 |
 | L2 Regularization | 0.8450 | 0.3500 | 0.0000 |
 
-L1 regularization produced 25% sparse weights (weights driven to near-zero), while L2 and no-regularization produced none — consistent with the theoretical expectation that L1's constant-magnitude gradient ($\text{sign}(W)$) pushes small weights all the way to zero, while L2's gradient (proportional to $W$) shrinks weights without eliminating them.
+L1 regularization produced 25% sparse weights (weights driven to near-zero), while L2 and no-regularization produced none — consistent with the theoretical expectation that L1's constant-magnitude gradient (`sign(W)`) pushes small weights all the way to zero, while L2's gradient (proportional to W) shrinks weights without eliminating them.
 
 ### Optimizer comparison
 
